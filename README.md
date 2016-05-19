@@ -34,40 +34,29 @@ more severe color fringes in glyphs due to the bad performance of
 `FT_LCD_FILTER_LEGACY`.
 
 ## poppler
-The poppler patch is `poppler-subpixel.patch`.  It does two jobs.  First, it
-removes the `FT_LOAD_NO_HINTING` when trying to load fonts to cairo backend.
-By doing this, the developers of PDF application (such as evince) is able to
-set hint style by calling `cairo_font_options_set_hint_style` and
-`cairo_get_font_options`.  I believe that the reason that the developer of
-poppler disabled hinting was to prevent the displace of font to maximize to
-accuracy.  However, by using slight hinting (`FT_LOAD_TARGET_LIGHT` in
-FreeType), only the y coordinates of the outlines would be changed.  The
-displacement of the glyphs can hardly be noticed but the quality of rendering
-improves a lot.  Furthermore, _hinting can still be disabled if the
-application developers/users(by providing them a option) do intend._
 
-The second feature this patch provides is a new function called
+The patch `poppler-subpixel.patch` provides a new function called
 `poppler_page_support_subpixel_rendering` for glib/cairo backend for poppler.
-This function checks whether a PDF page could be subpixel-rendered.  The
-reason that subpixel rendering is not implemented in may PDF viewer is that
-glyphs subpixel rendering cannot easily support transparent background, i.e.,
-the background color much be known when the glyphs are rendered.  By default,
-PDF has a transparent background.  In most case, one can fill white to the
-background before the rendering of glyphs to workaround this problem.
-However, PDF file format has a feature called [_blend
+This function checks whether a PDF page could be subpixel-rendered.  The reason
+that subpixel rendering is not implemented in may PDF viewer is that glyphs
+subpixel rendering cannot easily support transparent background, i.e., the
+background color much be known when the glyphs are rendered.  By default, PDF
+has a transparent background.  In most case, one can fill white to the
+background before the rendering of glyphs to workaround this problem. However,
+PDF file format has a feature called [_blend
 modes_](https://en.wikipedia.org/wiki/Blend_modes).  Example can be downloaded
 from [https://github.com/mozilla/pdf.js/blob/master/test/pdfs/blendmode.pdf].
-Some blend modes will generate different results when drawing on transparent
-or white background.  Therefore, filling color into background is incorrect in
+Some blend modes will generate different results when drawing on transparent or
+white background.  Therefore, filling color into background is incorrect in
 this case.  The new added function `poppler_page_support_subpixel_rendering`
 checks whether it is safe to fill some color into background by traversing
 current page and check whether transparent background and colored background
 are distinguishable by all the blend modes used before rendering.  If it
-returns true, the application can call `cairo_paint` to fill the background
-and `cairo_font_options_set_antialias` to enable the subpixel rendering for
-cairo.
+returns true, the application can call `cairo_paint` to fill the background and
+`cairo_font_options_set_antialias` to enable the subpixel rendering for cairo.
 
-This patch does not break the ABI compatibility and is backward compatible.
+See `glib/demo/render.c` for an example how to use the subpixel rendering
+feature.
 
 ## evince
 The patch of evince uses `poppler_page_support_subpixel_rendering` to check
